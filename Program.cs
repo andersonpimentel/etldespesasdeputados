@@ -43,58 +43,67 @@ namespace ETLDespesasDeputados
                 { "tipo", tiposUnicos }
             };
 
+            var camposDescricaoPorDimensao = new Dictionary<string, string>
+            {
+                {"deputado", "nome_deputado"},
+                {"uf", "sg_uf"},
+                {"partido", "sg_partido"},
+                {"tipo", "desc_tipo"}
+            };
+
             using (var conn = new NpgsqlConnection(connString))
             {
                 conn.Open();
 
                 foreach (var dimensao in dimensoes)
                 {
-                    LimparTabela(conn, "dim_" + dimensao);
+                    var nomeTabelaDimensao = $"dim_{dimensao}";
 
-                    Console.WriteLine($"Inserindo registros na tabela dim_{dimensao}");
-                    using (var cmd = new NpgsqlCommand())
+                    LimparTabela(conn, nomeTabelaDimensao);
+
+                    Console.WriteLine($"Inserindo registros na tabela {nomeTabelaDimensao}");
+                    using (var writer = conn.BeginBinaryImport($"COPY {nomeTabelaDimensao} (cod_{dimensao}, {camposDescricaoPorDimensao[dimensao]}) FROM STDIN (FORMAT BINARY)"))
                     {
-                        cmd.Connection = conn;
-                        cmd.CommandText = $"INSERT INTO dim_{dimensao} VALUES (@cod, @desc)";
-                        cmd.Parameters.Add("cod", NpgsqlDbType.Integer);
-                        cmd.Parameters.Add("desc", NpgsqlDbType.Varchar);
-
                         foreach (var valores in dimensoesPorNome[dimensao])
                         {
-                            cmd.Parameters["cod"].Value = valores.Value;
-                            cmd.Parameters["desc"].Value = valores.Key;
-                            cmd.ExecuteNonQuery();
+                            writer.StartRow();
+                            writer.Write(valores.Value, NpgsqlDbType.Integer);
+                            writer.Write(valores.Key, NpgsqlDbType.Varchar);
                         }
+                        writer.Complete();
                     }
                 }
 
                 LimparTabela(conn, "fato_despesas");
 
                 Console.WriteLine($"Inserindo registros na tabela fato_despesas");
-                using (var cmd = new NpgsqlCommand())
+                using (var writer = conn.BeginBinaryImport($"COPY fato_despesas (cod_tipo, cod_deputado, cod_partido, cod_uf, dt_despesa, vl_despesa) FROM STDIN (FORMAT BINARY)"))
                 {
-                    cmd.Connection = conn;
-                    cmd.CommandText = "INSERT INTO fato_despesas (cod_tipo, cod_deputado, cod_partido, cod_uf, dt_despesa, vl_despesa) " +
-                                      "VALUES (@cod_tipo, @cod_deputado, @cod_partido, @cod_uf, @dt_despesa, @vl_despesa)";
-                    cmd.Parameters.Add("cod_tipo", NpgsqlDbType.Integer);
-                    cmd.Parameters.Add("cod_deputado", NpgsqlDbType.Integer);
-                    cmd.Parameters.Add("cod_partido", NpgsqlDbType.Integer);
-                    cmd.Parameters.Add("cod_uf", NpgsqlDbType.Integer);
-                    cmd.Parameters.Add("dt_despesa", NpgsqlDbType.Date);
-                    cmd.Parameters.Add("vl_despesa", NpgsqlDbType.Money);
-
-                    var i = 0;
                     foreach (var registro in registros)
                     {
-                        Console.WriteLine($"Inserindo registro {++i} na tabela fato_despesas");
-                        cmd.Parameters["cod_tipo"].Value = tiposUnicos[registro.desc_tipo];
-                        cmd.Parameters["cod_deputado"].Value = deputadosUnicos[registro.nome_deputado];
-                        cmd.Parameters["cod_partido"].Value = partidosUnicos[registro.sg_partido];
-                        cmd.Parameters["cod_uf"].Value = ufsUnicas[registro.sg_uf];
-                        cmd.Parameters["dt_despesa"].Value = registro.dt_despesa ?? (object)DBNull.Value;
-                        cmd.Parameters["vl_despesa"].Value = registro.vl_despesa ?? (object)DBNull.Value;
-                        cmd.ExecuteNonQuery();
+                        writer.StartRow();
+                        writer.Write(tiposUnicos[registro.desc_tipo], NpgsqlDbType.Integer);
+                        writer.Write(deputadosUnicos[registro.nome_deputado]);
+                        writer.Write(partidosUnicos[registro.sg_partido]);
+                        writer.Write(ufsUnicas[registro.sg_uf]);
+                        if (registro.dt_despesa == null)
+                        {
+                            writer.WriteNull();
+                        }
+                        else
+                        {
+                            writer.Write(registro.dt_despesa.Value, NpgsqlDbType.Date);
+                        }
+                        if (registro.vl_despesa == null)
+                        {
+                            writer.WriteNull();
+                        }
+                        else
+                        {
+                            writer.Write(registro.vl_despesa.Value, NpgsqlDbType.Money);
+                        }
                     }
+                    writer.Complete();
                 }
             }
         }

@@ -42,17 +42,9 @@ namespace ETLDespesasDeputados
                         badData.Add(readingContext.RawRecord);
                     };
 
-                    var records = new List<Origem>();
+                    Console.WriteLine("Obtendo registros do CSV");
 
-                    var i = 0;
-
-                    while (csvReader.Read())
-                    {
-                        records.Add(csvReader.GetRecord<Origem>());
-                        Console.WriteLine("Carregou registro " + ++i);
-                    }
-
-                    return records.ToArray();
+                    return csvReader.GetRecords<Origem>().ToArray();
                 }
             }
         }
