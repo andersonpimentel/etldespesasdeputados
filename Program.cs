@@ -10,17 +10,9 @@ namespace ETLDespesasDeputados
 {
     class Program
     {
-        private const string host = "localhost";
-        private const string username = "pentaho";
-        private const string password = "pentaho";
-        private const string database = "despesasv3-db";
-        private const string arquivo = @"C:\Users\ander_000\OneDrive\Documentos\Pós Big Data\ED-MD-DW-BI\cota_parlamentar.csv.gz";
-        private static readonly string[] dimensoes = new[] { "deputado", "partido", "uf", "tipo" };
-
-
         static void Main(string[] args)
         {
-            var registros = Compressao.Conteudo(new FileInfo(arquivo));
+            var registros = Compressao.Conteudo(new FileInfo(Parametros.Arquivo));
 
             Console.WriteLine("Obtendo deputados únicos");
             var deputadosUnicos = ValoresUnicos(registros, r => r.nome_deputado);
@@ -34,7 +26,7 @@ namespace ETLDespesasDeputados
             Console.WriteLine("Obtendo tipos únicos");
             var tiposUnicos = ValoresUnicos(registros, r => r.desc_tipo);
 
-            var connString = $"Host={host};Username={username};Password={password};Database={database}";
+            var connString = $"Host={Parametros.Host};Username={Parametros.Username};Password={Parametros.Password};Database={Parametros.Database}";
 
             var dimensoesPorNome = new Dictionary<string, Dictionary<string, int>> {
                 { "deputado", deputadosUnicos },
@@ -55,7 +47,7 @@ namespace ETLDespesasDeputados
             {
                 conn.Open();
 
-                foreach (var dimensao in dimensoes)
+                foreach (var dimensao in dimensoesPorNome.Keys)
                 {
                     var nomeTabelaDimensao = $"dim_{dimensao}";
 
@@ -72,6 +64,34 @@ namespace ETLDespesasDeputados
                         }
                         writer.Complete();
                     }
+                }
+
+                LimparTabela(conn, "dim_data");
+
+                Console.WriteLine($"Inserindo registros na tabela dim_data");
+                using (var writer = conn.BeginBinaryImport($"COPY dim_data (cod_data, dia_mes, dia_semana, nome_dia_semana, mes, nome_mes, ano, txt_data, vl_data) FROM STDIN (FORMAT BINARY)"))
+                {
+                    var dataAtual = Parametros.DataInicio;
+                    var id = 1;
+
+                    do
+                    {
+                        writer.StartRow();
+                        writer.Write(id++, NpgsqlDbType.Integer);
+                        writer.Write(dataAtual.Day, NpgsqlDbType.Integer);
+                        writer.Write(((int)dataAtual.DayOfWeek) + 1, NpgsqlDbType.Integer);
+                        writer.Write(dataAtual.ToString("dddd", Parametros.CultureInfo), NpgsqlDbType.Varchar);
+                        writer.Write(dataAtual.Month, NpgsqlDbType.Integer);
+                        writer.Write(dataAtual.ToString("MMMM", Parametros.CultureInfo), NpgsqlDbType.Varchar);
+                        writer.Write(dataAtual.Year, NpgsqlDbType.Integer);
+                        writer.Write(dataAtual.ToString("yyyy-MM-dd HH:mm:ss"), NpgsqlDbType.Varchar);
+                        writer.Write(dataAtual, NpgsqlDbType.Date);
+
+                        dataAtual = dataAtual.AddDays(1);
+                    }
+                    while (dataAtual <= Parametros.DataFim);
+
+                    writer.Complete();
                 }
 
                 LimparTabela(conn, "fato_despesas");
