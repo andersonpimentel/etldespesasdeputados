@@ -15,7 +15,8 @@ APIs.
 - Liberado por: [Álvaro Justen](https://twitter.com/turicas)
 - Código-fonte: https://github.com/turicas/gastos-deputados
 - Licença: [Creative Commons Attribution-ShareAlike 4.0 International](https://creativecommons.org/licenses/by-sa/4.0/)
-- Formato do arquivo: [Dicionário de dados](http://www2.camara.leg.br/transparencia/cota-para-exercicio-da-atividade-parlamentar/explicacoes-sobre-o-formato-dos-arquivos-xml)
+- Formato do arquivo: CSV (GZipped)
+- Dicionário de dados: [Link](http://www2.camara.leg.br/transparencia/cota-para-exercicio-da-atividade-parlamentar/explicacoes-sobre-o-formato-dos-arquivos-xml)
 
 O dataset completo possui um total de 3.544.400 registros entre os anos de 2009 e 2019 (incompleto), referentes a gastos reembolsados
 por deputados estaduais e federais por meio da cota parlamentar.
