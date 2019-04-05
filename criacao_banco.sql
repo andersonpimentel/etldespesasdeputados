@@ -1,8 +1,8 @@
--- Database: despesasv2-db
+-- Database: despesasv2db
 
--- DROP DATABASE "despesasv2-db";
+-- DROP DATABASE "despesasv2db";
 
-CREATE DATABASE "despesasv2-db"
+CREATE DATABASE "despesasv2db"
     WITH 
     OWNER = postgres
     ENCODING = 'UTF8'
@@ -88,7 +88,7 @@ ALTER TABLE public.dim_partido
 
 CREATE TABLE public.dim_tipo
 (
-    cod_tipo integer NOT NULL DEFAULT nextval('dim_tipo_cod_tipo_seq'::regclass),
+    cod_tipo integer NOT NULL,
     desc_tipo character varying(80) COLLATE pg_catalog."default" NOT NULL,
     CONSTRAINT dim_tipo_pkey PRIMARY KEY (cod_tipo)
 )
@@ -106,7 +106,7 @@ ALTER TABLE public.dim_tipo
 
 CREATE TABLE public.dim_uf
 (
-    cod_uf integer NOT NULL DEFAULT nextval('dim_uf_cod_uf_seq'::regclass),
+    cod_uf integer NOT NULL,
     sg_uf character(2) COLLATE pg_catalog."default" NOT NULL,
     CONSTRAINT dim_uf_pkey PRIMARY KEY (cod_uf)
 )
